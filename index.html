@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌍 国旗クイズ</title>
+  <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+</head>
+<body>
+
+<h1 class="site-title"><span class="title-globe">🌍</span> <span class="title-grad">国旗クイズ</span></h1>
+<p class="subtitle">国旗を見て国名を当てよう！</p>
+
+<!-- HOME -->
+<div id="screen-home" class="screen">
+  <div class="mode-grid">
+    <button class="mode-btn selected" data-mode="flag2name" onclick="selectMode(this)">
+      <span class="mode-icon">🚩→🔤</span>
+      <span>国旗→国名</span>
+      <span class="mode-desc">国旗を見て国名を答える</span>
+    </button>
+    <button class="mode-btn" data-mode="name2flag" onclick="selectMode(this)">
+      <span class="mode-icon">🔤→🚩</span>
+      <span>国名→国旗</span>
+      <span class="mode-desc">国名を見て国旗を答える</span>
+    </button>
+    <button class="mode-btn" data-mode="mix" onclick="selectMode(this)">
+      <span class="mode-icon">🔀</span>
+      <span>ミックス</span>
+      <span class="mode-desc">両方向がランダムに<br>切り替わる</span>
+    </button>
+    <button class="mode-btn" data-mode="capital" onclick="selectMode(this)">
+      <span class="mode-icon">🏛️</span>
+      <span>首都</span>
+      <span class="mode-desc">国旗を見て<br>首都名を答える</span>
+    </button>
+  </div>
+
+  <div class="difficulty-grid">
+    <button class="diff-btn selected" data-diff="easy" onclick="selectDiff(this)">
+      <span class="diff-icon">🌱</span>
+      <span>Easy</span>
+      <span class="diff-desc">メジャーな国<br>制限時間なし</span>
+    </button>
+    <button class="diff-btn" data-diff="normal" onclick="selectDiff(this)">
+      <span class="diff-icon">🌐</span>
+      <span>Normal</span>
+      <span class="diff-desc">100カ国以上<br>30秒制限</span>
+    </button>
+    <button class="diff-btn" data-diff="hard" onclick="selectDiff(this)">
+      <span class="diff-icon">🔥</span>
+      <span>Hard</span>
+      <span class="diff-desc">マイナー国含む<br>15秒制限</span>
+    </button>
+    <button class="diff-btn" data-diff="history" onclick="selectDiff(this)">
+      <span class="diff-icon">📜</span>
+      <span>歴史</span>
+      <span class="diff-desc">旧国・消滅した国<br>20秒制限</span>
+    </button>
+  </div>
+  <div class="start-row">
+    <button class="start-btn" onclick="startQuiz()">クイズ開始！</button>
+    <button class="battle-btn" onclick="openBattleSetup()">⚔️ バトル！</button>
+    <button class="map-btn" onclick="startMapQuiz()">🗺️ 国の形！</button>
+  </div>
+
+  <div class="theme-section">
+    <div class="theme-label">🎨 背景テーマ</div>
+    <div class="theme-presets" id="theme-presets">
+      <button class="theme-swatch" data-bg="#0f1117" data-surface="#1a1d27" data-card="#22253a" title="ダーク（デフォルト）" style="background:#0f1117"></button>
+      <button class="theme-swatch" data-bg="#0d1b2a" data-surface="#1b2838" data-card="#243447" title="オーシャン" style="background:#0d1b2a"></button>
+      <button class="theme-swatch" data-bg="#1a0a2e" data-surface="#2a1045" data-card="#3a1a5a" title="パープル" style="background:#1a0a2e"></button>
+      <button class="theme-swatch" data-bg="#0a1f0a" data-surface="#122212" data-card="#1a3a1a" title="フォレスト" style="background:#0a1f0a"></button>
+      <button class="theme-swatch" data-bg="#1a0a0a" data-surface="#2a1010" data-card="#3a1818" title="クリムゾン" style="background:#1a0a0a"></button>
+      <button class="theme-swatch" data-bg="#1a1400" data-surface="#2a2000" data-card="#3a2e00" title="ゴールド" style="background:#1a1400"></button>
+      <button class="theme-swatch" data-bg="#f0f4f8" data-surface="#e2e8f0" data-card="#ffffff" data-text="#1a202c" data-muted="#718096" title="ライト" style="background:#f0f4f8;border-color:#cbd5e0"></button>
+      <label class="theme-swatch theme-custom" title="カスタムカラー">
+        <span>＋</span>
+        <input type="color" id="custom-bg-picker" value="#0f1117">
+      </label>
+    </div>
+    <div class="bg-image-row">
+      <label class="bg-image-btn" title="背景画像をアップロード">
+        🖼 画像を選ぶ
+        <input type="file" id="bg-image-input" accept="image/*">
+      </label>
+      <button class="bg-image-clear" id="bg-image-clear" title="画像を削除">✕ 画像を削除</button>
+    </div>
+  </div>
+
+  <div class="ranking-section">
+    <h2>🏆 ランキング</h2>
+    <ul class="ranking-list" id="ranking-list"></ul>
+  </div>
+</div>
+
+<!-- パーティクル canvas (全画面 fixed) -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- QUIZ -->
+<div id="screen-quiz" class="screen hidden">
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+  <div class="quiz-meta">
+    <span id="q-counter">問題 1 / 20</span>
+    <span id="q-score">スコア: 0</span>
+  </div>
+  <div class="flag-card" id="flag-display">🏳</div>
+  <div class="hint-text" id="hint-text"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <button class="hint-btn" id="hint-btn" onclick="showHint()">💡 ヒント (-5pt)</button>
+    <span id="timer-label" style="font-size:0.85rem;color:var(--muted)"></span>
+  </div>
+  <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar" style="width:100%;background:var(--green)"></div></div>
+  <div style="margin-bottom:16px;"></div>
+  <div class="choices" id="choices"></div>
+</div>
+
+<!-- RESULT -->
+<div id="screen-result" class="screen hidden">
+  <div class="result-card">
+    <div class="result-emoji" id="result-emoji"></div>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-label" id="result-label"></div>
+    <div class="result-stats">
+      <div class="stat"><div class="stat-val" id="stat-correct"></div><div class="stat-key">正解</div></div>
+      <div class="stat"><div class="stat-val" id="stat-acc"></div><div class="stat-key">正答率</div></div>
+      <div class="stat"><div class="stat-val" id="stat-streak"></div><div class="stat-key">最大連続</div></div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn-secondary" onclick="goHome()">🏠 ホーム</button>
+    <button class="btn-primary" onclick="startQuiz()">🔄 もう一度</button>
+  </div>
+  <div class="wrong-list" id="wrong-list"></div>
+</div>
+
+<!-- BATTLE SETUP -->
+<div id="screen-battle-setup" class="screen hidden">
+  <div class="battle-setup-card">
+    <div class="battle-mascots" id="setup-mascots"></div>
+    <div class="battle-title">⚔️ バトルモード</div>
+    <p class="battle-desc">2人が交互に同じ問題を解いてスコアを競おう！</p>
+    <div class="battle-names">
+      <div class="battle-name-field">
+        <label>プレイヤー1 の名前</label>
+        <input class="name-input" id="battle-name1" type="text" maxlength="10" placeholder="プレイヤー1">
+      </div>
+      <div class="battle-name-field">
+        <label>プレイヤー2 の名前</label>
+        <input class="name-input" id="battle-name2" type="text" maxlength="10" placeholder="プレイヤー2">
+      </div>
+    </div>
+    <div class="battle-diff-row">
+      <span class="battle-diff-label">難易度：</span>
+      <button class="bdiff-btn selected" data-diff="easy" onclick="selectBattleDiff(this)">🌱 Easy</button>
+      <button class="bdiff-btn" data-diff="normal" onclick="selectBattleDiff(this)">🌐 Normal</button>
+      <button class="bdiff-btn" data-diff="hard" onclick="selectBattleDiff(this)">🔥 Hard</button>
+    </div>
+    <button class="start-btn" onclick="startBattle()">⚔️ バトル開始！</button>
+    <button class="btn-secondary" style="margin-top:10px;width:100%" onclick="goHome()">← 戻る</button>
+  </div>
+</div>
+
+<!-- BATTLE HANDOFF -->
+<div id="screen-battle-handoff" class="screen hidden">
+  <div class="handoff-card">
+    <div class="handoff-pb" id="handoff-pb"></div>
+    <div class="handoff-title" id="handoff-title">プレイヤー2 の番！</div>
+    <div class="handoff-sub" id="handoff-sub">端末を渡してください</div>
+    <div class="handoff-score" id="handoff-score"></div>
+    <button class="start-btn" id="handoff-btn" onclick="startNextPlayerRound()">準備OK！ ▶</button>
+  </div>
+</div>
+
+<!-- MAP QUIZ -->
+<div id="screen-mapquiz" class="screen hidden">
+  <div class="progress-bar-wrap"><div class="progress-bar" id="map-progress-bar"></div></div>
+  <div class="quiz-meta">
+    <span id="map-q-counter">問題 1 / 10</span>
+    <span id="map-q-score">スコア: 0</span>
+  </div>
+  <div class="map-card" id="map-card">
+    <svg id="map-svg" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div class="map-question-label" id="map-question-label">この国はどこ？</div>
+  <div class="choices" id="map-choices"></div>
+</div>
+
+<!-- BATTLE RESULT -->
+<div id="screen-battle-result" class="screen hidden">
+  <div class="battle-result-card">
+    <div class="battle-winner" id="battle-winner"></div>
+    <div class="battle-pb-row" id="battle-pb-row"></div>
+    <div class="battle-scores-final" id="battle-scores-final"></div>
+    <div class="battle-stats-grid" id="battle-stats-grid"></div>
+  </div>
+  <div class="btn-row" style="margin-top:20px">
+    <button class="btn-secondary" onclick="goHome()">🏠 ホーム</button>
+    <button class="btn-primary" onclick="openBattleSetup()">⚔️ もう一度</button>
+  </div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
