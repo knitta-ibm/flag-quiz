@@ -354,3 +354,13 @@ body {
 .start-row .start-btn { flex: 2; min-width: 140px; margin-bottom: 0; width: auto; }
 .start-row .battle-btn { flex: 1; min-width: 90px; }
 .start-row .map-btn { flex: 1; min-width: 90px; }
+
+/* ===== FOOTER ===== */
+.site-footer {
+  margin-top: auto;
+  padding-top: 32px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  opacity: 0.7;
+}
